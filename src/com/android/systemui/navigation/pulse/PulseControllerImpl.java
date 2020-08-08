@@ -109,6 +109,7 @@ public class PulseControllerImpl
     private boolean mLsPulseEnabled;
     private boolean mKeyguardShowing;
     private boolean mDozing;
+    private boolean mKeyguardGoingAway;
 
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -224,18 +225,30 @@ public class PulseControllerImpl
 
     public void notifyKeyguardGoingAway() {
         if (mLsPulseEnabled) {
-            detachPulseFrom(getLsVisualizer(), allowNavPulse(getNavbarFrame())/*keep linked*/);
+            mKeyguardGoingAway = true;
+            updatePulseVisibility();
+            mKeyguardGoingAway = false;
         }
     }
 
     private void updatePulseVisibility() {
-        NavigationBarFrame nv = getNavbarFrame();
-        VisualizerView va = getAmVisualizer();
-        VisualizerView vv = getLsVisualizer();
-        boolean allowNavPulse = allowNavPulse(nv);
-        boolean allowAmPulse = allowAmPulse(va);
-        boolean allowLsPulse = allowLsPulse(vv);
+        if (mStatusbar == null) return;
 
+        NavigationBarFrame nv = mStatusbar.getNavigationBarView() != null ?
+                mStatusbar.getNavigationBarView().getNavbarFrame() : null;
+        VisualizerView vv = mStatusbar.getLsVisualizer();
+        VisualizerView va = mStatusbar.getAmVisualizer();
+        boolean allowAmPulse = va != null && va.isAttached()
+                && mAmbientPulseEnabled && mDozing;
+        boolean allowLsPulse = vv != null && vv.isAttached()
+                && mLsPulseEnabled && mKeyguardShowing && !mDozing;
+        boolean allowNavPulse = nv != null && nv.isAttached()
+            && mNavPulseEnabled && !mKeyguardShowing;
+
+        if (mKeyguardGoingAway) {
+            detachPulseFrom(vv, allowNavPulse/*keep linked*/);
+            return;
+        }
         if (!allowAmPulse) {
             detachPulseFrom(vv, (allowNavPulse || allowLsPulse)/*keep linked*/);
         }
@@ -270,35 +283,6 @@ public class PulseControllerImpl
             }
             updatePulseVisibility();
         }
-    }
-
-    private NavigationBarFrame getNavbarFrame() {
-        return mStatusbar != null ? mStatusbar.getNavigationBarView().getNavbarFrame() : null;
-    }
-
-    private VisualizerView getLsVisualizer() {
-        return mStatusbar != null ? mStatusbar.getLsVisualizer() : null;
-    }
-
-    private VisualizerView getAmVisualizer() {
-        return mStatusbar != null ? mStatusbar.getAmVisualizer() : null;
-    }
-
-    private boolean allowNavPulse(NavigationBarFrame v) {
-        if (v == null) return false;
-        return v.isAttached() && mNavPulseEnabled && !mKeyguardShowing;
-    }
-
-    private boolean allowLsPulse(VisualizerView v) {
-        if (v == null) return false;
-        return v.isAttached() && mLsPulseEnabled
-                && mKeyguardShowing && !mDozing;
-    }
-
-    private boolean allowAmPulse(VisualizerView v) {
-        if (v == null) return false;
-        return v.isAttached() && mAmbientPulseEnabled
-                && mDozing;
     }
 
     @Inject
