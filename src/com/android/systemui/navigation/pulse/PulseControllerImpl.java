@@ -250,13 +250,13 @@ public class PulseControllerImpl
             return;
         }
         if (!allowAmPulse) {
-            detachPulseFrom(vv, (allowNavPulse || allowLsPulse)/*keep linked*/);
+            detachPulseFrom(va, (allowNavPulse || allowLsPulse)/*keep linked*/);
         }
         if (!allowNavPulse) {
             detachPulseFrom(nv, (allowAmPulse || allowLsPulse)/*keep linked*/);
         }
         if (!allowLsPulse) {
-            detachPulseFrom(vv, allowNavPulse/*keep linked*/);
+            detachPulseFrom(vv, (allowNavPulse || allowAmPulse)/*keep linked*/);
         }
 
         if (allowAmPulse) {
