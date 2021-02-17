@@ -110,6 +110,7 @@ public class PulseControllerImpl
     private boolean mLsPulseEnabled;
     private boolean mKeyguardShowing;
     private boolean mDozing;
+    private boolean mKeyguardGoingAway;
 
     private boolean mRenderLoadedOnce;
 
@@ -219,7 +220,9 @@ public class PulseControllerImpl
 
     public void notifyKeyguardGoingAway() {
         if (mLsPulseEnabled) {
-            detachPulseFrom(getLsVisualizer(), allowNavPulse(getNavbarFrame())/*keep linked*/);
+            mKeyguardGoingAway = true;
+            updatePulseVisibility(true);
+            mKeyguardGoingAway = false;
         }
     }
 
@@ -229,10 +232,18 @@ public class PulseControllerImpl
     }
 
     private void updatePulseVisibility(boolean forceStop) {
-        NavigationBarFrame nv = getNavbarFrame();
+        if (mStatusbar == null) return;
+
+        NavigationBarFrame nv = mStatusbar.getNavigationBarView() != null ?
+                mStatusbar.getNavigationBarView().getNavbarFrame() : null;
         VisualizerView vv = getLsVisualizer();
         boolean allowLsPulse = !forceStop && allowLsPulse(vv);
         boolean allowNavPulse = !forceStop && allowNavPulse(nv);
+
+        if (mKeyguardGoingAway) {
+            detachPulseFrom(vv, allowNavPulse/*keep linked*/);
+            return;
+        }
 
         if (!allowNavPulse) {
             detachPulseFrom(nv, allowLsPulse/*keep linked*/);
@@ -265,10 +276,6 @@ public class PulseControllerImpl
             }
             updatePulseVisibility(false);
         }
-    }
-
-    private NavigationBarFrame getNavbarFrame() {
-        return mStatusbar != null ? mStatusbar.getNavigationBarView().getNavbarFrame() : null;
     }
 
     private NavigationBarView getNavigationBarView() {
